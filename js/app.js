@@ -34,7 +34,10 @@
     selectedRouteTitle: $("selectedRouteTitle"),
     selectedRouteSubtitle: $("selectedRouteSubtitle"),
     googleMapsLink: $("googleMapsLink"),
-    toast: $("toast")
+    toast: $("toast"),
+    mobileResultTabs: $("mobileResultTabs"),
+    mobileJumpBtn: $("mobileJumpBtn"),
+    resultsArea: $("resultsArea")
   };
 
   const LEVELS = {
@@ -80,6 +83,7 @@
     placesService = new google.maps.places.PlacesService(map);
     bindEvents();
     updateSummary();
+    if (isMobileScreen()) setMobileView("routes");
   }
 
   function bindEvents() {
@@ -100,6 +104,21 @@
       generateRoutes();
     });
     ui.resetBtn.addEventListener("click", generateRoutes);
+
+    if (ui.mobileJumpBtn) {
+      ui.mobileJumpBtn.addEventListener("click", () => {
+        setMobileView("routes");
+        scrollToResults();
+      });
+    }
+
+    if (ui.mobileResultTabs) {
+      ui.mobileResultTabs.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-mobile-view]");
+        if (!btn) return;
+        setMobileView(btn.dataset.mobileView);
+      });
+    }
 
     ui.timeOptions.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-minutes]");
@@ -226,6 +245,10 @@
       renderRoutes();
       selectRoute(0);
       showToast("루트 5개 생성 완료");
+      if (isMobileScreen()) {
+        setMobileView("routes");
+        setTimeout(scrollToResults, 120);
+      }
     } catch (err) {
       console.error(err);
       ui.routesList.innerHTML = `<div class="empty"><div>⚠️</div><strong>루트 생성 실패</strong><p>지역을 넓게 입력하거나 API 설정을 확인하세요.</p></div>`;
@@ -610,6 +633,10 @@
     ui.selectedRouteSubtitle.textContent = `${names} · ${route.estimatedMinutes}분 · ${formatDistance(route.distanceMeters)}`;
     renderRouteOnMap(route);
     setGoogleMapsLink(route);
+    if (isMobileScreen()) {
+      setMobileView("map");
+      setTimeout(scrollToResults, 80);
+    }
   }
 
   let fallbackLine = null;
@@ -761,6 +788,36 @@
   function cleanPlaceName(name){ return String(name).replace(/\s+/g," ").replace(/점$/,"").slice(0,10); }
   function escapeHtml(str){ return String(str).replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[s])); }
   function showToast(msg){ ui.toast.textContent=msg; ui.toast.classList.add("show"); clearTimeout(showToast._t); showToast._t=setTimeout(()=>ui.toast.classList.remove("show"),2200); }
+
+
+  function setMobileView(view) {
+    if (!ui.resultsArea) return;
+    document.body.classList.toggle("mobile-view-map", view === "map");
+    document.body.classList.toggle("mobile-view-routes", view !== "map");
+
+    if (ui.mobileResultTabs) {
+      [...ui.mobileResultTabs.querySelectorAll("button")].forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.mobileView === view);
+      });
+    }
+
+    if (view === "map" && map) {
+      setTimeout(() => {
+        google.maps.event.trigger(map, "resize");
+        if (markers.length) fitToMarkers();
+      }, 80);
+    }
+  }
+
+  function scrollToResults() {
+    if (!ui.resultsArea) return;
+    ui.resultsArea.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function isMobileScreen() {
+    return window.matchMedia && window.matchMedia("(max-width: 780px)").matches;
+  }
+
 
   boot();
 })();
