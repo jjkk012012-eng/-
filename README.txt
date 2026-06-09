@@ -32,3 +32,18 @@ v7 수정 사항:
 참고:
 지도에 '죄송합니다. 문제가 발생했습니다'가 보이면 레이아웃 문제가 아니라 Google Maps API 키 제한/활성화 문제입니다.
 Google Cloud Console에서 Maps JavaScript API, Places API, Directions API, Geocoding API 활성화와 HTTP referrer 도메인 허용을 확인하세요.
+
+v8 수정 사항:
+- 검색 카드 안 보조 문구가 흰색으로 보이는 문제 완전 수정
+- search-card 내부 텍스트 색상을 명시적으로 검정/회색으로 고정
+- 상단/지도/추천 카드의 삐뚤어진 레이아웃 재정렬
+- 음수 margin 제거 및 전체 max-width 통일
+- 히어로 카피/검색 카드/지도 카드의 좌우 균형 재조정
+- 모바일/태블릿 겹침 방지
+
+v9 수정 사항:
+- 1→2→3→4 경유지 순서를 최대한 짧게 이어지도록 재정렬
+- 최근접 탐색 + 2-opt 개선 로직 추가
+- 지도에는 직선이 아니라 Google Directions의 실제 도보 경로선 표시
+- Directions 실패 시에만 임시 polyline 표시
+- Directions 결과의 실제 거리/이동시간을 상단 요약에 반영

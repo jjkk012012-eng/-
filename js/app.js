@@ -401,16 +401,82 @@
   }
 
   function orderPlacesSmart(places) {
+    // 지도에 표시되는 1→2→3→4 경로가 최대한 짧게 이어지도록
+    // 현재 위치 기준 최근접 탐색 + 2-opt 개선으로 방문 순서를 재정렬합니다.
+    const ordered = nearestNeighborOrder(currentPosition, places);
+    return twoOptImprove(currentPosition, ordered);
+  }
+
+  function nearestNeighborOrder(origin, places) {
     const remaining = [...places];
     const ordered = [];
-    let cursor = currentPosition;
+    let cursor = origin;
+
     while (remaining.length) {
-      remaining.sort((a,b) => haversine(cursor,a.geometry.location) - haversine(cursor,b.geometry.location) + Math.random()*120);
-      const next = remaining.shift();
+      let bestIndex = 0;
+      let bestScore = Infinity;
+
+      remaining.forEach((place, idx) => {
+        const distance = haversine(cursor, place.geometry.location);
+        const ratingBonus = (place.rating || 3.8) * 8;
+        const reviewBonus = Math.min((place.user_ratings_total || 0) / 80, 8);
+        const score = distance - ratingBonus - reviewBonus;
+
+        if (score < bestScore) {
+          bestScore = score;
+          bestIndex = idx;
+        }
+      });
+
+      const next = remaining.splice(bestIndex, 1)[0];
       ordered.push(next);
       cursor = next.geometry.location;
     }
+
     return ordered;
+  }
+
+  function twoOptImprove(origin, route) {
+    if (route.length < 4) return route;
+
+    let best = [...route];
+    let improved = true;
+    let guard = 0;
+
+    while (improved && guard < 12) {
+      improved = false;
+      guard++;
+
+      for (let i = 0; i < best.length - 2; i++) {
+        for (let k = i + 1; k < best.length - 1; k++) {
+          const candidate = twoOptSwap(best, i, k);
+          if (routeDistance(origin, candidate) + 1 < routeDistance(origin, best)) {
+            best = candidate;
+            improved = true;
+          }
+        }
+      }
+    }
+
+    return best;
+  }
+
+  function twoOptSwap(route, i, k) {
+    return [
+      ...route.slice(0, i),
+      ...route.slice(i, k + 1).reverse(),
+      ...route.slice(k + 1)
+    ];
+  }
+
+  function routeDistance(origin, route) {
+    let total = 0;
+    let cursor = origin;
+    route.forEach(place => {
+      total += haversine(cursor, place.geometry.location);
+      cursor = place.geometry.location;
+    });
+    return total;
   }
 
   function buildRouteObject(places, profile, index) {
@@ -546,23 +612,37 @@
     setGoogleMapsLink(route);
   }
 
+  let fallbackLine = null;
+
   function renderRouteOnMap(route) {
     clearMarkers();
-    const waypoints = route.places.slice(0, -1).map(p => ({ location: p.geometry.location, stopover: true }));
-    const destination = route.places[route.places.length - 1].geometry.location;
+    clearFallbackLine();
+
+    // 카드에 보이는 1→2→3→4 순서 그대로 실제 도보 경로선을 그립니다.
+    // 즉, 지도에는 직선이 아니라 Google Directions가 계산한 도로/보행 경로가 표시됩니다.
+    const orderedPlaces = orderPlacesSmart(route.places);
+    route.places = orderedPlaces;
+
+    const waypoints = orderedPlaces.slice(0, -1).map(p => ({
+      location: p.geometry.location,
+      stopover: true
+    }));
+    const destination = orderedPlaces[orderedPlaces.length - 1].geometry.location;
 
     markers.push(new google.maps.Marker({
-      position: currentPosition, map,
+      position: currentPosition,
+      map,
       label: { text: "출발", color: "#fff", fontWeight: "900" },
       title: "출발 위치",
       icon: { path: google.maps.SymbolPath.CIRCLE, scale: 12, fillColor: "#168179", fillOpacity: 1, strokeWeight: 3, strokeColor: "#fff" }
     }));
 
-    route.places.forEach((p, i) => {
+    orderedPlaces.forEach((p, i) => {
       markers.push(new google.maps.Marker({
-        position: p.geometry.location, map,
-        label: { text: String(i+1), color: "#fff", fontWeight: "900" },
-        title: `${i+1}. ${p.name}`,
+        position: p.geometry.location,
+        map,
+        label: { text: String(i + 1), color: "#fff", fontWeight: "900" },
+        title: `${i + 1}. ${p.name}`,
         icon: { path: google.maps.SymbolPath.CIRCLE, scale: 13, fillColor: "#315CE8", fillOpacity: 1, strokeWeight: 3, strokeColor: "#fff" }
       }));
     });
@@ -572,11 +652,62 @@
       destination,
       waypoints,
       travelMode: google.maps.TravelMode.WALKING,
-      optimizeWaypoints: false
+      optimizeWaypoints: false,
+      provideRouteAlternatives: false
     }, (result, status) => {
-      if (status === "OK") directionsRenderer.setDirections(result);
-      else { directionsRenderer.setDirections({ routes: [] }); fitToMarkers(); showToast("마커 중심 표시"); }
+      if (status === "OK") {
+        directionsRenderer.setDirections(result);
+        updateRouteSummaryFromDirections(route, result);
+      } else {
+        directionsRenderer.setDirections({ routes: [] });
+        drawFallbackPolyline(orderedPlaces);
+        fitToMarkers();
+        showToast("보행 경로 계산 실패: 임시 선으로 표시합니다.");
+      }
     });
+  }
+
+  function updateRouteSummaryFromDirections(route, result) {
+    const legs = result.routes?.[0]?.legs || [];
+    if (!legs.length) return;
+
+    const meters = legs.reduce((sum, leg) => sum + (leg.distance?.value || 0), 0);
+    const seconds = legs.reduce((sum, leg) => sum + (leg.duration?.value || 0), 0);
+
+    if (meters > 0) route.distanceMeters = meters;
+    if (seconds > 0) {
+      const moveMinutes = Math.round(seconds / 60);
+      const dwell = route.places.reduce((sum, p) => sum + (p._dwell || 15), 0);
+      route.estimatedMinutes = Math.max(15, moveMinutes + dwell);
+    }
+
+    ui.selectedRouteSubtitle.textContent =
+      `${route.places.slice(0,3).map(p=>p.name).join(" → ")} · ${route.estimatedMinutes}분 · ${formatDistance(route.distanceMeters)}`;
+  }
+
+  function drawFallbackPolyline(places) {
+    clearFallbackLine();
+
+    const path = [
+      currentPosition,
+      ...places.map(p => p.geometry.location)
+    ];
+
+    fallbackLine = new google.maps.Polyline({
+      path,
+      geodesic: false,
+      strokeColor: "#315CE8",
+      strokeOpacity: 0.78,
+      strokeWeight: 5,
+      map
+    });
+  }
+
+  function clearFallbackLine() {
+    if (fallbackLine) {
+      fallbackLine.setMap(null);
+      fallbackLine = null;
+    }
   }
 
   function setGoogleMapsLink(route) {
@@ -620,7 +751,7 @@
     const lng = typeof ll.lng === "function" ? ll.lng() : ll.lng;
     return `${lat},${lng}`;
   }
-  function clearMarkers(){ markers.forEach(m=>m.setMap(null)); markers=[]; }
+  function clearMarkers(){ markers.forEach(m=>m.setMap(null)); markers=[]; if (typeof clearFallbackLine === "function") clearFallbackLine(); }
   function fitToMarkers(){ if(!markers.length)return; const bounds=new google.maps.LatLngBounds(); markers.forEach(m=>bounds.extend(m.getPosition())); map.fitBounds(bounds); }
   function roundMoney(n){ return Math.round(n/1000)*1000; }
   function formatWon(n){ if(n>=10000){const man=n/10000; return `${Number.isInteger(man)?man:man.toFixed(1)}만원`;} return `${n.toLocaleString()}원`; }
