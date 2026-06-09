@@ -1,0 +1,9 @@
+{
+  "version": "v2",
+  "fixed": [
+    "current location mode",
+    "manual location input mode",
+    "no google autocomplete UI",
+    "route card click changes map line"
+  ]
+}
