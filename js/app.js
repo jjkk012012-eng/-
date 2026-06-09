@@ -38,17 +38,14 @@
   };
 
   const LEVELS = {
-    low: { label: "하", text: "가볍게", radiusMul: .75, countAdjust: -1, maxWalkPerHour: 850 },
-    mid: { label: "중", text: "적당히", radiusMul: 1, countAdjust: 0, maxWalkPerHour: 1200 },
-    high: { label: "상", text: "알차게", radiusMul: 1.35, countAdjust: 1, maxWalkPerHour: 1700 }
+    low: { label: "하", radiusMul: .72, countAdjust: -1, maxWalkPerHour: 850 },
+    mid: { label: "중", radiusMul: 1, countAdjust: 0, maxWalkPerHour: 1200 },
+    high: { label: "상", radiusMul: 1.32, countAdjust: 1, maxWalkPerHour: 1700 }
   };
 
   async function boot() {
-    try {
-      ENGINE = await fetch(ENGINE_URL).then(r => r.json());
-    } catch {
-      ENGINE = fallbackEngine();
-    }
+    try { ENGINE = await fetch(ENGINE_URL).then(r => r.json()); }
+    catch { ENGINE = fallbackEngine(); }
     loadGoogleMaps();
   }
 
@@ -58,7 +55,7 @@
     script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(API_KEY)}&libraries=places&language=ko&region=KR&callback=initTimeRouteApp`;
     script.async = true;
     script.defer = true;
-    script.onerror = () => showToast("Google Maps 스크립트 로드 실패");
+    script.onerror = () => showToast("Google Maps 로드 실패");
     document.head.appendChild(script);
   }
 
@@ -88,7 +85,7 @@
   function bindEvents() {
     ui.topLocateBtn.addEventListener("click", tryAutoLocate);
     ui.cardLocateBtn.addEventListener("click", () => { setMode("current"); tryAutoLocate(); });
-    ui.manualModeBtn.addEventListener("click", () => { setMode("manual"); ui.placeInput.focus(); setStatus("지역명을 입력하고 검색을 누르세요."); });
+    ui.manualModeBtn.addEventListener("click", () => { setMode("manual"); ui.placeInput.focus(); setStatus("지역명을 입력하고 검색하세요."); });
     ui.useSearchBtn.addEventListener("click", geocodeSearch);
     ui.placeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") geocodeSearch(); });
     document.querySelectorAll("[data-place]").forEach(btn => btn.addEventListener("click", () => {
@@ -120,7 +117,7 @@
       selectedMinutes = val;
       [...ui.timeOptions.querySelectorAll("button")].forEach(b => b.classList.remove("active"));
       updateSummary();
-      showToast(`${val}분으로 적용했습니다.`);
+      showToast(`${val}분 적용`);
     });
 
     ui.levelOptions.addEventListener("click", (e) => {
@@ -137,23 +134,22 @@
     ui.cardLocateBtn.classList.toggle("active", mode === "current");
     ui.manualModeBtn.classList.toggle("active", mode === "manual");
   }
-
   function setStatus(text){ ui.locationStatus.textContent = text; }
 
   function tryAutoLocate() {
-    if (!navigator.geolocation) return showToast("이 브라우저는 위치 기능을 지원하지 않습니다.");
+    if (!navigator.geolocation) return showToast("위치 기능을 지원하지 않습니다.");
     setStatus("현재 위치 확인 중...");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const loc = new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
         setCurrentPosition(loc, "현재 위치");
         reverseGeocode(loc);
-        showToast("현재 위치가 적용되었습니다.");
+        showToast("현재 위치 적용");
       },
       () => {
         setMode("manual");
-        setStatus("위치 권한이 거부되었습니다. 지역명을 직접 입력해주세요.");
-        showToast("직접 입력으로 사용할 수 있습니다.");
+        setStatus("위치 권한 거부됨. 지역명을 입력하세요.");
+        showToast("직접 입력으로 사용 가능");
       },
       { enableHighAccuracy: true, timeout: 9000, maximumAge: 60000 }
     );
@@ -163,7 +159,7 @@
     geocoder.geocode({ location: latlng }, (results, status) => {
       if (status === "OK" && results && results[0]) {
         ui.placeInput.value = results[0].formatted_address;
-        setStatus(`출발 위치: ${results[0].formatted_address}`);
+        setStatus(`출발지: ${results[0].formatted_address}`);
       }
     });
   }
@@ -171,18 +167,18 @@
   function geocodeSearch(silent=false) {
     return new Promise((resolve) => {
       const q = ui.placeInput.value.trim();
-      if (!q) { if(!silent) showToast("지역명을 입력해주세요."); resolve(false); return; }
+      if (!q) { if(!silent) showToast("지역명을 입력하세요."); resolve(false); return; }
       setMode("manual");
-      setStatus("입력한 지역을 찾는 중...");
+      setStatus("지역 검색 중...");
       geocoder.geocode({ address: q, region: "KR" }, (results, status) => {
         if (status === "OK" && results && results[0]) {
           setCurrentPosition(results[0].geometry.location, results[0].formatted_address);
           ui.placeInput.value = results[0].formatted_address;
-          showToast("출발 지역이 적용되었습니다.");
+          showToast("출발지 적용");
           resolve(true);
         } else {
-          setStatus("지역을 찾지 못했습니다. 예: 익산역, 광장시장처럼 입력해보세요.");
-          showToast("지역을 찾지 못했습니다.");
+          setStatus("지역을 찾지 못했습니다.");
+          showToast("지역 검색 실패");
           resolve(false);
         }
       });
@@ -195,7 +191,7 @@
     searchGeneration++;
     map.setCenter(latlng);
     map.setZoom(15);
-    setStatus(`출발 위치: ${label}`);
+    setStatus(`출발지: ${label}`);
     showStartMarker(latlng);
   }
 
@@ -212,30 +208,28 @@
 
   function updateSummary() {
     const level = LEVELS[selectedLevel];
-    ui.summaryStrip.innerHTML = `현재 조건 <b>${selectedMinutes}분 · ${level.label} 코스</b>`;
+    ui.summaryStrip.innerHTML = `현재 조건 <b>${selectedMinutes}분 · ${level.label}</b>`;
   }
 
   async function generateRoutes() {
-    if (!currentPosition) return showToast("현재 위치를 허용하거나 지역명을 검색해주세요.");
+    if (!currentPosition) return showToast("출발지를 먼저 선택하세요.");
     ui.generateBtn.disabled = true;
     ui.resetBtn.disabled = true;
-    ui.routesList.innerHTML = `<div class="empty"><div>✨</div><strong>루트 생성 중...</strong><p>주변 데이터를 모으고 랜덤 조합을 계산하고 있습니다.</p></div>`;
+    ui.routesList.innerHTML = `<div class="empty"><div>✨</div><strong>루트 생성 중</strong><p>주변 가게와 장소를 찾고 있습니다.</p></div>`;
 
     try {
       const startGen = searchGeneration;
       const pools = await collectRichPlacePools();
       if (startGen !== searchGeneration) return;
-      const allCount = Object.values(pools).flat().length;
-      if (allCount < 3) throw new Error("not enough places");
-
+      if (Object.values(pools).flat().length < 3) throw new Error("not enough places");
       generatedRoutes = buildRoutesWithRetries(pools, 5);
       renderRoutes();
       selectRoute(0);
-      showToast("랜덤 루트 5개를 다시 만들었습니다.");
+      showToast("루트 5개 생성 완료");
     } catch (err) {
       console.error(err);
-      ui.routesList.innerHTML = `<div class="empty"><div>⚠️</div><strong>루트 생성 실패</strong><p>지역을 조금 더 넓게 입력하거나 API 설정을 확인해주세요.</p></div>`;
-      showToast("루트 생성 중 문제가 발생했습니다.");
+      ui.routesList.innerHTML = `<div class="empty"><div>⚠️</div><strong>루트 생성 실패</strong><p>지역을 넓게 입력하거나 API 설정을 확인하세요.</p></div>`;
+      showToast("루트 생성 실패");
     } finally {
       ui.generateBtn.disabled = false;
       ui.resetBtn.disabled = false;
@@ -246,36 +240,34 @@
     const radius = calcSearchRadius();
     const defs = ENGINE.categoryDefinitions;
     const tasks = [];
-
     Object.entries(defs).forEach(([cat, def]) => {
       (def.types || []).forEach(type => tasks.push(searchNearbyType(cat, type, radius)));
-      (def.keywords || []).slice(0, 5).forEach(keyword => tasks.push(searchTextKeyword(cat, keyword, radius)));
+      (def.keywords || []).forEach(keyword => tasks.push(searchTextKeyword(cat, keyword, radius)));
     });
-
     const groups = await Promise.all(tasks);
     const pools = {};
-    for (const [cat] of Object.entries(defs)) pools[cat] = [];
+    Object.keys(defs).forEach(cat => pools[cat] = []);
 
     groups.flat().forEach(p => {
       if (!p || !p.place_id || !p.geometry || !p.geometry.location) return;
+      if (isBadPlaceName(p.name)) return;
       const cat = p._cat || "walk";
-      if (!pools[cat]) pools[cat] = [];
       if (!pools[cat].some(x => x.place_id === p.place_id)) pools[cat].push(p);
     });
 
     Object.keys(pools).forEach(cat => {
       pools[cat] = pools[cat]
         .map(p => ({ ...p, _distance: haversine(currentPosition, p.geometry.location) }))
-        .filter(p => p._distance <= radius * 1.35)
+        .filter(p => p._distance <= radius * 1.45)
         .sort((a,b) => scorePlace(b) - scorePlace(a))
-        .slice(0, 25);
+        .slice(0, 36);
     });
 
     return pools;
   }
 
   function calcSearchRadius() {
-    const base = selectedMinutes <= 30 ? 900 : selectedMinutes <= 60 ? 1400 : selectedMinutes <= 120 ? 2300 : 3300;
+    const base = selectedMinutes <= 30 ? 900 : selectedMinutes <= 60 ? 1500 : selectedMinutes <= 120 ? 2500 : 3600;
     return Math.round(base * LEVELS[selectedLevel].radiusMul);
   }
 
@@ -310,19 +302,31 @@
     return {
       ...p,
       _cat: cat,
-      _catName: categoryName(cat),
+      _catName: def.label || categoryName(cat),
       _dwell: dwell,
       _costLow: cost[0],
-      _costHigh: cost[1],
-      _vibe: def.vibe || []
+      _costHigh: cost[1]
     };
+  }
+
+  function isBadPlaceName(name="") {
+    const n = String(name).trim();
+    if (!n) return true;
+    const bad = ["아파트", "오피스텔", "주공", "빌라", "맨션", "주차장", "정류장", "교차로", "사거리", "IC", "지하차도", "육교", "어린이집", "초등학교", "중학교", "고등학교", "대학교"];
+    return bad.some(x => n.includes(x));
   }
 
   function scorePlace(p) {
     const rating = p.rating || 3.7;
     const reviews = Math.min((p.user_ratings_total || 0) / 300, 1);
     const near = Math.max(0, 1 - (p._distance || 0) / Math.max(900, calcSearchRadius()));
-    return rating * 1.4 + reviews * 2 + near * 2 + Math.random() * 2.8;
+    const nameBonus = hasCommercialName(p.name) ? 1.2 : 0;
+    return rating * 1.4 + reviews * 2 + near * 2 + nameBonus + Math.random() * 2.8;
+  }
+
+  function hasCommercialName(name="") {
+    const n = String(name);
+    return /(식당|분식|카페|커피|시장|빵|베이커리|치킨|국밥|국수|떡볶이|상회|횟집|고기|갈비|초밥|포차|호프|공원|박물관|거리|광장)/.test(n);
   }
 
   function buildRoutesWithRetries(pools, target) {
@@ -330,31 +334,23 @@
     const usedFingerprints = new Set();
     const usedTitles = new Set();
     let guard = 0;
-
-    while (routes.length < target && guard < 90) {
+    while (routes.length < target && guard < 100) {
       guard++;
       const profile = weightedProfile();
       const count = routePlaceCount();
       let places = pickPlacesByProfile(pools, profile, count);
       if (places.length < 2) places = pickFallbackPlaces(pools, count);
       places = orderPlacesSmart(places);
-
       const route = buildRouteObject(places, profile, routes.length);
+      if (route.places.length < 2) continue;
       const fp = route.places.map(p => p.place_id).sort().join("|");
-      if (usedFingerprints.has(fp) && guard < 70) continue;
-      if (usedTitles.has(route.title)) route.title = makeAlternativeTitle(route, routes.length);
+      if (usedFingerprints.has(fp) && guard < 75) continue;
+      if (usedTitles.has(route.title)) route.title = `${route.title} ${routes.length + 1}`;
       usedFingerprints.add(fp);
       usedTitles.add(route.title);
       routes.push(route);
     }
-
-    while (routes.length < target) {
-      const fallback = buildRouteObject(orderPlacesSmart(pickFallbackPlaces(pools, routePlaceCount())), weightedProfile(), routes.length);
-      fallback.title = makeAlternativeTitle(fallback, routes.length);
-      routes.push(fallback);
-    }
-
-    return routes;
+    return routes.slice(0, target);
   }
 
   function weightedProfile() {
@@ -371,20 +367,19 @@
   function routePlaceCount() {
     let base = selectedMinutes <= 30 ? [2,3] : selectedMinutes <= 60 ? [3,4] : selectedMinutes <= 120 ? [4,5] : [5,6];
     const adj = LEVELS[selectedLevel].countAdjust;
-    base = [Math.max(2, base[0] + adj), Math.max(2, base[1] + adj)];
-    return randomBetween(base[0], base[1]);
+    return randomBetween(Math.max(2, base[0]+adj), Math.max(2, base[1]+adj));
   }
 
   function pickPlacesByProfile(pools, profile, count) {
     const result = [];
-    const categories = shuffle([...(profile.categories || Object.keys(pools))]);
+    const cats = shuffle([...(profile.categories || Object.keys(pools))]);
     let turns = 0;
-    while (result.length < count && turns < count * 5) {
-      turns++;
-      const cat = categories[turns % categories.length];
+    while (result.length < count && turns < count * 6) {
+      const cat = cats[turns % cats.length];
       const pool = pools[cat] || [];
       const picked = weightedPick(pool.filter(p => !result.some(x => x.place_id === p.place_id)));
       if (picked) result.push(picked);
+      turns++;
     }
     return result;
   }
@@ -394,19 +389,14 @@
     return shuffle(all).sort((a,b) => scorePlace(b) - scorePlace(a)).slice(0, count);
   }
 
-  function uniqueByPlaceId(p, i, arr) {
-    return arr.findIndex(x => x.place_id === p.place_id) === i;
-  }
+  function uniqueByPlaceId(p, i, arr) { return arr.findIndex(x => x.place_id === p.place_id) === i; }
 
   function weightedPick(pool) {
     if (!pool.length) return null;
-    const sorted = pool.map(p => ({ p, w: Math.max(.2, scorePlace(p)) })).sort((a,b) => b.w - a.w).slice(0, 12);
+    const sorted = pool.map(p => ({ p, w: Math.max(.2, scorePlace(p)) })).sort((a,b) => b.w - a.w).slice(0, 16);
     const total = sorted.reduce((s,x) => s + x.w, 0);
     let r = Math.random() * total;
-    for (const x of sorted) {
-      r -= x.w;
-      if (r <= 0) return x.p;
-    }
+    for (const x of sorted) { r -= x.w; if (r <= 0) return x.p; }
     return sorted[0].p;
   }
 
@@ -415,18 +405,10 @@
     const ordered = [];
     let cursor = currentPosition;
     while (remaining.length) {
-      remaining.sort((a,b) => {
-        const da = haversine(cursor, a.geometry.location);
-        const db = haversine(cursor, b.geometry.location);
-        return (da + Math.random()*160) - (db + Math.random()*160);
-      });
-      const next = remaining.splice(0, 1)[0];
+      remaining.sort((a,b) => haversine(cursor,a.geometry.location) - haversine(cursor,b.geometry.location) + Math.random()*120);
+      const next = remaining.shift();
       ordered.push(next);
       cursor = next.geometry.location;
-    }
-    if (Math.random() < .28 && ordered.length > 3) {
-      const i = randomBetween(1, ordered.length-2);
-      [ordered[i], ordered[i+1]] = [ordered[i+1], ordered[i]];
     }
     return ordered;
   }
@@ -436,8 +418,7 @@
     let walkMinutes = Math.max(6, Math.round(meters / 72));
     let dwell = places.reduce((s,p) => s + (p._dwell || 18), 0);
     let total = walkMinutes + dwell;
-
-    const maxAllowed = selectedMinutes + Math.max(8, Math.round(selectedMinutes * .12));
+    const maxAllowed = selectedMinutes + Math.max(8, Math.round(selectedMinutes * .14));
     while (total > maxAllowed && places.length > 2) {
       places.pop();
       meters = estimateDistanceMeters(places);
@@ -445,15 +426,10 @@
       dwell = places.reduce((s,p) => s + (p._dwell || 18), 0);
       total = walkMinutes + dwell;
     }
-
     const cost = estimateCost(places);
-    const cats = [...new Set(places.map(p => p._catName))];
-    const title = makeRouteTitle(places, profile, index);
-    const desc = makeRouteDescription(places, profile, meters, total);
-
     return {
-      title,
-      desc,
+      title: makeRouteTitle(places, profile, index),
+      desc: makeRouteDescription(places, profile, meters, total),
       profileName: profile.name,
       places,
       estimatedMinutes: Math.max(15, Math.round(total)),
@@ -461,57 +437,42 @@
       costLow: cost.low,
       costHigh: cost.high,
       fatigue: calcFatigue(meters, total, places.length),
-      funScore: calcFunScore(places, profile, meters),
-      categories: cats
+      funScore: calcFunScore(places, profile),
+      keywords: makeKeywords(places, profile)
     };
   }
 
   function makeRouteTitle(places, profile, index) {
-    const parts = ENGINE.titleParts;
-    const cats = places.map(p => p._catName).filter(Boolean);
-    const unique = [...new Set(cats)];
-    const timePrefix = selectedMinutes <= 30 ? "초간단" : selectedMinutes <= 60 ? "짧은" : selectedMinutes <= 120 ? "여유" : "반나절";
-    const levelPrefix = selectedLevel === "low" ? "가벼운" : selectedLevel === "mid" ? "균형형" : "알찬";
-    const first = unique[0] || pick(parts.middle);
-    const second = unique.find(c => c !== first) || pick(parts.middle);
-    const firstPlace = cleanPlaceName(places[0]?.name || "");
+    const main = places[0]?.name ? cleanPlaceName(places[0].name) : profile.name;
+    const cats = [...new Set(places.map(p => p._catName))];
+    const second = cats[1] || cats[0] || "로컬";
     const patterns = [
-      `${timePrefix} ${first} ${pick(parts.suffix)}`,
-      `${levelPrefix} ${first}·${second} 루트`,
-      `${firstPlace ? firstPlace + " 주변 " : ""}${second} 랜덤 코스`,
-      `${first}에서 ${second}까지 한 바퀴`,
-      `${profile.name}`,
-      `${pick(parts.prefix)} ${first} ${second} 루트`,
-      `${selectedMinutes}분 ${first} 집중 루트`
+      `${main} 중심 루트`,
+      `${profile.name} 루트`,
+      `${cats[0] || "로컬"} + ${second} 코스`,
+      `${selectedMinutes}분 ${cats[0] || "주변"} 루트`,
+      `${main} 주변 한 바퀴`
     ];
     return patterns[index % patterns.length];
   }
 
-  function makeAlternativeTitle(route, index) {
-    const cats = route.categories || ["로컬"];
-    return `${cats[index % cats.length]} ${index + 1}번 랜덤 루트`;
+  function makeRouteDescription(places, profile, meters, total) {
+    const pool = ENGINE.shortDescriptions[profile.id] || ["주변 장소를 랜덤으로 연결한 루트"];
+    const a = pool[randomBetween(0, pool.length-1)];
+    const b = meters < 900 ? "짧은 이동" : meters < 1700 ? "적당한 이동" : "많이 걷는 코스";
+    const c = total <= selectedMinutes ? "시간 여유 있음" : "시간 꽉 참";
+    return `${a} · ${b} · ${c}`;
   }
 
-  function makeRouteDescription(places, profile, meters, total) {
-    const d = ENGINE.descriptionParts;
-    const cats = [...new Set(places.map(p => p._catName))].join("·");
-    const firstLine = `${pick(d.start)} ${cats ? cats + " 요소를 함께 넣었습니다." : ""}`;
-    const distanceLine = meters < 800 ? "이동거리가 짧아 바로 움직이기 좋습니다." :
-                         meters < 1600 ? "적당히 걷는 코스로 지역 분위기를 느끼기 좋습니다." :
-                         "걷는 양은 조금 있지만 여러 장소를 넓게 볼 수 있습니다.";
-    const timeLine = total <= selectedMinutes - 12 ? "입력한 시간보다 여유가 있어 부담이 적습니다." :
-                     total <= selectedMinutes + 5 ? "입력한 시간에 맞춰 알차게 구성했습니다." :
-                     "시간 안에서 최대한 많은 장소를 담은 코스입니다.";
-    const ending = pick(d.ending);
-    return `${firstLine} ${distanceLine} ${timeLine} ${ending}`;
+  function makeKeywords(places, profile) {
+    const cats = [...new Set(places.map(p => p._catName))].slice(0,3);
+    const levelKeys = ENGINE.keywords?.[selectedLevel] || [];
+    return [...cats, ...levelKeys].slice(0,5);
   }
 
   function estimateDistanceMeters(places) {
     let total = 0, prev = currentPosition;
-    for (const p of places) {
-      total += haversine(prev, p.geometry.location);
-      prev = p.geometry.location;
-    }
+    for (const p of places) { total += haversine(prev, p.geometry.location); prev = p.geometry.location; }
     return total;
   }
 
@@ -532,12 +493,10 @@
     return score <= 1 ? "하" : score <= 3 ? "중" : "상";
   }
 
-  function calcFunScore(places, profile, meters) {
+  function calcFunScore(places, profile) {
     const diversity = new Set(places.map(p => p._cat)).size;
     const ratingAvg = places.reduce((s,p)=>s+(p.rating||3.7),0) / Math.max(1, places.length);
-    const reviewBoost = Math.min(8, places.reduce((s,p)=>s+(p.user_ratings_total||0),0)/500);
-    let score = 58 + diversity*7 + places.length*3 + (ratingAvg-3.5)*9 + reviewBoost + Math.random()*7;
-    if (profile.id === "hidden_mix") score += 4;
+    let score = 58 + diversity*7 + places.length*3 + (ratingAvg-3.5)*9 + Math.random()*8;
     if (selectedLevel === "high") score += 4;
     if (selectedLevel === "low") score -= 1;
     return Math.min(99, Math.max(62, Math.round(score)));
@@ -545,7 +504,13 @@
 
   function renderRoutes() {
     ui.routesList.innerHTML = generatedRoutes.map((route, idx) => {
-      const placeNames = route.places.map((p, i) => `${i+1}. ${escapeHtml(p.name)}`).join(" · ");
+      const spots = route.places.slice(0, 5).map((p, i) => `
+        <div class="spot">
+          <span class="spot-num">${i+1}</span>
+          <span class="spot-name">${escapeHtml(p.name)}</span>
+          <span class="spot-type">${escapeHtml(p._catName)}</span>
+        </div>`).join("");
+      const keywords = route.keywords.map(k => `<span>${escapeHtml(k)}</span>`).join("");
       return `<article class="route-card ${idx===activeRouteIndex?"active":""}" data-route-index="${idx}">
         <div class="route-top">
           <div>
@@ -554,13 +519,14 @@
           </div>
           <span class="route-tag">${selectedMinutes}분 · ${LEVELS[selectedLevel].label}</span>
         </div>
+        <div class="spot-list">${spots}</div>
+        <div class="keywords">${keywords}</div>
         <div class="metrics">
-          <div class="metric"><span>예상 시간</span><strong>${route.estimatedMinutes}분</strong></div>
-          <div class="metric"><span>예상 비용</span><strong>${formatWon(route.costLow)}~${formatWon(route.costHigh)}</strong></div>
-          <div class="metric"><span>이동 거리</span><strong>${formatDistance(route.distanceMeters)}</strong></div>
-          <div class="metric"><span>피로도 / 재미도</span><strong>${route.fatigue} · ${route.funScore}점</strong></div>
+          <div class="metric"><span>시간</span><strong>${route.estimatedMinutes}분</strong></div>
+          <div class="metric"><span>비용</span><strong>${formatWon(route.costLow)}~${formatWon(route.costHigh)}</strong></div>
+          <div class="metric"><span>거리</span><strong>${formatDistance(route.distanceMeters)}</strong></div>
+          <div class="metric"><span>피로/재미</span><strong>${route.fatigue} · ${route.funScore}점</strong></div>
         </div>
-        <p class="waypoints">${placeNames}</p>
       </article>`;
     }).join("");
     [...ui.routesList.querySelectorAll(".route-card")].forEach(card => {
@@ -573,8 +539,9 @@
     const route = generatedRoutes[index];
     if (!route) return;
     [...ui.routesList.querySelectorAll(".route-card")].forEach((card, i) => card.classList.toggle("active", i === index));
+    const names = route.places.slice(0,3).map(p=>p.name).join(" → ");
     ui.selectedRouteTitle.textContent = `${index+1}. ${route.title}`;
-    ui.selectedRouteSubtitle.textContent = `${route.estimatedMinutes}분 · ${formatDistance(route.distanceMeters)} · ${formatWon(route.costLow)}~${formatWon(route.costHigh)} · 피로도 ${route.fatigue} · 재미도 ${route.funScore}점`;
+    ui.selectedRouteSubtitle.textContent = `${names} · ${route.estimatedMinutes}분 · ${formatDistance(route.distanceMeters)}`;
     renderRouteOnMap(route);
     setGoogleMapsLink(route);
   }
@@ -588,15 +555,15 @@
       position: currentPosition, map,
       label: { text: "출발", color: "#fff", fontWeight: "900" },
       title: "출발 위치",
-      icon: { path: google.maps.SymbolPath.CIRCLE, scale: 11, fillColor: "#168179", fillOpacity: 1, strokeWeight: 3, strokeColor: "#fff" }
+      icon: { path: google.maps.SymbolPath.CIRCLE, scale: 12, fillColor: "#168179", fillOpacity: 1, strokeWeight: 3, strokeColor: "#fff" }
     }));
 
     route.places.forEach((p, i) => {
       markers.push(new google.maps.Marker({
         position: p.geometry.location, map,
         label: { text: String(i+1), color: "#fff", fontWeight: "900" },
-        title: p.name,
-        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 12, fillColor: "#315CE8", fillOpacity: 1, strokeWeight: 3, strokeColor: "#fff" }
+        title: `${i+1}. ${p.name}`,
+        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 13, fillColor: "#315CE8", fillOpacity: 1, strokeWeight: 3, strokeColor: "#fff" }
       }));
     });
 
@@ -608,7 +575,7 @@
       optimizeWaypoints: false
     }, (result, status) => {
       if (status === "OK") directionsRenderer.setDirections(result);
-      else { directionsRenderer.setDirections({ routes: [] }); fitToMarkers(); showToast("경로 계산 실패: 마커 중심으로 표시합니다."); }
+      else { directionsRenderer.setDirections({ routes: [] }); fitToMarkers(); showToast("마커 중심 표시"); }
     });
   }
 
@@ -618,26 +585,23 @@
     const waypoints = route.places.slice(0, -1).map(p => latLngString(p.geometry.location)).join("|");
     ui.googleMapsLink.href = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=walking${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ""}`;
     ui.googleMapsLink.classList.remove("disabled");
-    ui.googleMapsLink.textContent = "Google 지도 길찾기";
+    ui.googleMapsLink.textContent = "Google 지도";
   }
 
   function categoryName(cat) {
-    return ({
-      market:"시장", food:"먹거리", snack:"간식", cafe:"카페", photo:"포토스팟",
-      culture:"문화", walk:"산책", shopping:"상권"
-    })[cat] || "장소";
+    return ({market:"시장", food:"맛집", snack:"간식", cafe:"카페", photo:"포토", culture:"명소", walk:"산책", shopping:"상권"})[cat] || "장소";
   }
 
   function fallbackEngine() {
     return {
       categoryDefinitions: {
-        food:{types:["restaurant"],keywords:["맛집"],cost:[8000,16000],dwell:[25,40],vibe:["먹거리"]},
-        cafe:{types:["cafe"],keywords:["카페"],cost:[5000,12000],dwell:[20,35],vibe:["휴식"]},
-        walk:{types:["park"],keywords:["공원"],cost:[0,3000],dwell:[15,25],vibe:["산책"]}
+        food:{types:["restaurant"],keywords:["맛집"],cost:[8000,16000],dwell:[25,40],label:"맛집"},
+        cafe:{types:["cafe"],keywords:["카페"],cost:[5000,12000],dwell:[20,35],label:"카페"},
+        walk:{types:["park"],keywords:["공원"],cost:[0,3000],dwell:[15,25],label:"산책"}
       },
-      routeProfiles: [{id:"balanced",name:"균형형 주변 루트",categories:["food","cafe","walk"],weight:1}],
-      titleParts:{prefix:["랜덤"],middle:["로컬"],suffix:["루트"]},
-      descriptionParts:{start:["현재 위치 주변 장소를 연결했습니다."],ending:["바로 실행하기 좋습니다."]}
+      routeProfiles: [{id:"balanced",name:"균형형",categories:["food","cafe","walk"],weight:1}],
+      shortDescriptions:{balanced:["먹고 걷고 쉬는 균형형 코스"]},
+      keywords:{mid:["균형"]}
     };
   }
 
@@ -662,11 +626,10 @@
   function formatWon(n){ if(n>=10000){const man=n/10000; return `${Number.isInteger(man)?man:man.toFixed(1)}만원`;} return `${n.toLocaleString()}원`; }
   function formatDistance(m){ return m>=1000?`${(m/1000).toFixed(1)}km`:`${Math.round(m)}m`; }
   function randomBetween(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-  function pick(arr){ return arr[randomBetween(0, arr.length-1)]; }
   function shuffle(arr){ return [...arr].sort(()=>Math.random()-.5); }
-  function cleanPlaceName(name){ return String(name).replace(/\s+/g," ").replace(/점$/,"").slice(0,8); }
+  function cleanPlaceName(name){ return String(name).replace(/\s+/g," ").replace(/점$/,"").slice(0,10); }
   function escapeHtml(str){ return String(str).replace(/[&<>"']/g,s=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[s])); }
-  function showToast(msg){ ui.toast.textContent=msg; ui.toast.classList.add("show"); clearTimeout(showToast._t); showToast._t=setTimeout(()=>ui.toast.classList.remove("show"),2400); }
+  function showToast(msg){ ui.toast.textContent=msg; ui.toast.classList.add("show"); clearTimeout(showToast._t); showToast._t=setTimeout(()=>ui.toast.classList.remove("show"),2200); }
 
   boot();
 })();
