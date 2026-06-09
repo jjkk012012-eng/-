@@ -1,0 +1,337 @@
+{
+  "version": "4.0",
+  "description": "TimeRoute AI random route engine rules",
+  "categoryDefinitions": {
+    "market": {
+      "keywords": [
+        "전통시장",
+        "시장",
+        "재래시장",
+        "상설시장"
+      ],
+      "cost": [
+        3000,
+        15000
+      ],
+      "dwell": [
+        20,
+        40
+      ],
+      "vibe": [
+        "로컬",
+        "먹거리",
+        "상권"
+      ]
+    },
+    "food": {
+      "types": [
+        "restaurant"
+      ],
+      "keywords": [
+        "맛집",
+        "분식",
+        "국밥",
+        "백반",
+        "중식",
+        "고기",
+        "국수"
+      ],
+      "cost": [
+        8000,
+        18000
+      ],
+      "dwell": [
+        28,
+        45
+      ],
+      "vibe": [
+        "먹거리",
+        "식사"
+      ]
+    },
+    "snack": {
+      "types": [
+        "bakery"
+      ],
+      "keywords": [
+        "빵집",
+        "디저트",
+        "간식",
+        "분식",
+        "떡볶이",
+        "호떡"
+      ],
+      "cost": [
+        3000,
+        9000
+      ],
+      "dwell": [
+        10,
+        22
+      ],
+      "vibe": [
+        "간식",
+        "가볍게"
+      ]
+    },
+    "cafe": {
+      "types": [
+        "cafe"
+      ],
+      "keywords": [
+        "카페",
+        "커피",
+        "디저트카페"
+      ],
+      "cost": [
+        5000,
+        12000
+      ],
+      "dwell": [
+        25,
+        45
+      ],
+      "vibe": [
+        "휴식",
+        "카페"
+      ]
+    },
+    "photo": {
+      "keywords": [
+        "포토존",
+        "벽화",
+        "거리",
+        "문화거리",
+        "전망",
+        "공원"
+      ],
+      "cost": [
+        0,
+        5000
+      ],
+      "dwell": [
+        12,
+        25
+      ],
+      "vibe": [
+        "사진",
+        "산책"
+      ]
+    },
+    "culture": {
+      "types": [
+        "museum",
+        "tourist_attraction"
+      ],
+      "keywords": [
+        "박물관",
+        "전시",
+        "문화",
+        "역사",
+        "기념관"
+      ],
+      "cost": [
+        0,
+        12000
+      ],
+      "dwell": [
+        25,
+        55
+      ],
+      "vibe": [
+        "문화",
+        "볼거리"
+      ]
+    },
+    "walk": {
+      "types": [
+        "park"
+      ],
+      "keywords": [
+        "공원",
+        "산책",
+        "하천",
+        "광장"
+      ],
+      "cost": [
+        0,
+        3000
+      ],
+      "dwell": [
+        15,
+        30
+      ],
+      "vibe": [
+        "산책",
+        "휴식"
+      ]
+    },
+    "shopping": {
+      "types": [
+        "shopping_mall",
+        "store"
+      ],
+      "keywords": [
+        "상가",
+        "쇼핑",
+        "거리",
+        "기념품"
+      ],
+      "cost": [
+        5000,
+        25000
+      ],
+      "dwell": [
+        15,
+        35
+      ],
+      "vibe": [
+        "상권",
+        "구매"
+      ]
+    }
+  },
+  "routeProfiles": [
+    {
+      "id": "quick_local",
+      "name": "초간단 로컬 체크",
+      "categories": [
+        "market",
+        "snack",
+        "photo"
+      ],
+      "weight": 14
+    },
+    {
+      "id": "food_cafe",
+      "name": "먹거리와 카페 연결",
+      "categories": [
+        "food",
+        "snack",
+        "cafe"
+      ],
+      "weight": 18
+    },
+    {
+      "id": "market_walk",
+      "name": "시장과 골목 산책",
+      "categories": [
+        "market",
+        "walk",
+        "snack",
+        "photo"
+      ],
+      "weight": 16
+    },
+    {
+      "id": "culture_light",
+      "name": "문화 감성 가벼운 루트",
+      "categories": [
+        "culture",
+        "cafe",
+        "walk"
+      ],
+      "weight": 10
+    },
+    {
+      "id": "photo_cafe",
+      "name": "사진과 휴식 루트",
+      "categories": [
+        "photo",
+        "cafe",
+        "walk",
+        "snack"
+      ],
+      "weight": 12
+    },
+    {
+      "id": "local_dense",
+      "name": "알찬 로컬 밀집 루트",
+      "categories": [
+        "market",
+        "food",
+        "snack",
+        "shopping",
+        "cafe"
+      ],
+      "weight": 14
+    },
+    {
+      "id": "hidden_mix",
+      "name": "숨은 장소 섞기 루트",
+      "categories": [
+        "walk",
+        "shopping",
+        "snack",
+        "cafe",
+        "photo"
+      ],
+      "weight": 10
+    },
+    {
+      "id": "balanced",
+      "name": "균형형 주변 한 바퀴",
+      "categories": [
+        "food",
+        "cafe",
+        "walk",
+        "culture",
+        "market"
+      ],
+      "weight": 16
+    }
+  ],
+  "titleParts": {
+    "prefix": [
+      "가볍게",
+      "짧게",
+      "알차게",
+      "여유롭게",
+      "바로 가는",
+      "랜덤으로 즐기는",
+      "동네를 느끼는",
+      "처음 가도 쉬운"
+    ],
+    "middle": [
+      "먹거리",
+      "시장",
+      "카페",
+      "골목",
+      "명소",
+      "산책",
+      "상권",
+      "문화",
+      "디저트",
+      "포토스팟"
+    ],
+    "suffix": [
+      "루트",
+      "코스",
+      "한 바퀴",
+      "랜덤 코스",
+      "동네 루트",
+      "시간맞춤 루트"
+    ]
+  },
+  "descriptionParts": {
+    "start": [
+      "현재 위치에서 무리 없이 이동할 수 있는 장소를 중심으로 묶었습니다.",
+      "주변 장소를 랜덤으로 섞되, 시간 안에 실행 가능하도록 정리했습니다.",
+      "너무 멀리 가지 않고 주변 분위기를 느낄 수 있도록 구성했습니다.",
+      "같은 지역에서도 다시 뽑을 때마다 다른 느낌이 나도록 조합했습니다.",
+      "먹고 걷고 쉬는 흐름이 끊기지 않도록 장소를 연결했습니다."
+    ],
+    "distance": [
+      "이동거리가 짧아 부담이 적습니다.",
+      "적당히 걷는 구간이 있어 동네 분위기를 느끼기 좋습니다.",
+      "조금 더 많이 걷지만 다양한 장소를 볼 수 있습니다.",
+      "시간 대비 이동 동선이 비교적 효율적입니다."
+    ],
+    "ending": [
+      "처음 방문한 지역에서도 바로 선택하기 좋습니다.",
+      "마음에 들지 않으면 다시 뽑기로 완전히 다른 루트를 받을 수 있습니다.",
+      "짧은 설명만 보고 바로 실행하기 쉬운 루트입니다.",
+      "장소가 다양하게 섞여 랜덤 탐색 느낌을 살렸습니다."
+    ]
+  }
+}

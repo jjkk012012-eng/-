@@ -3,171 +3,158 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>타임루트 AI | 현재 위치 기반 랜덤 관광 루트</title>
-  <meta name="description" content="현재 위치 또는 직접 입력한 지역을 기준으로 랜덤 관광 루트 5개를 추천합니다." />
-  <meta name="theme-color" content="#101828" />
+  <title>타임루트 AI | 위치 기반 랜덤 루트</title>
+  <meta name="description" content="현재 위치 또는 직접 입력한 지역을 기준으로 시간과 강도에 맞는 랜덤 관광 루트 5개를 추천합니다." />
+  <meta name="theme-color" content="#0B1220" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
-  <div class="app-shell">
-    <header class="hero">
-      <nav class="topbar">
-        <div class="brand">
-          <div class="brand-mark">TR</div>
-          <div>
+  <div class="page">
+    <header class="app-header">
+      <div class="nav">
+        <a class="brand" href="#">
+          <span class="brand-icon">TR</span>
+          <span>
             <strong>타임루트 AI</strong>
-            <span>현재 위치·직접 입력 기반 랜덤 관광 루트</span>
-          </div>
+            <em>시간·강도 기반 랜덤 루트</em>
+          </span>
+        </a>
+        <div class="nav-actions">
+          <button id="topLocateBtn" class="pill-btn" type="button">현재 위치</button>
+          <a class="pill-btn" href="#guide">사용법</a>
         </div>
-        <div class="top-actions">
-          <button id="topLocateBtn" class="ghost-btn" type="button">현재 위치 사용</button>
-          <a class="ghost-btn" href="#how">사용법</a>
-        </div>
-      </nav>
+      </div>
 
-      <section class="hero-grid">
+      <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">No plan, just time.</p>
-          <h1>오늘 몇 시간 놀 수 있나요?</h1>
-          <p class="lead">
-            현재 위치를 쓰거나 지역명을 직접 입력하세요. 시간과 코스 강도만 고르면
-            주변 전통시장·먹거리·카페·포토스팟을 섞어 랜덤 루트 5개를 추천합니다.
+          <p class="eyebrow">Random route generator</p>
+          <h1>지역과 시간만 넣으면<br>루트 5개가 바로 나옵니다.</h1>
+          <p>
+            현재 위치 또는 직접 입력한 지역을 기준으로 주변 먹거리, 카페, 시장, 산책지, 명소를 조합합니다.
+            루트를 누를 때마다 지도 경유지와 선이 바뀝니다.
           </p>
-          <div class="hero-badges">
-            <span>현재 위치 가능</span>
-            <span>지역 직접 입력 가능</span>
+          <div class="chips">
+            <span>5개씩 추천</span>
             <span>무제한 다시 뽑기</span>
+            <span>지도 경로선</span>
+            <span>1~2줄 설명</span>
           </div>
         </div>
 
-        <div class="control-card">
-          <div class="mode-tabs">
-            <button id="cardLocateBtn" type="button" class="mode-tab active">
+        <section class="search-card" aria-label="루트 조건 입력">
+          <div class="mode-switch">
+            <button id="cardLocateBtn" class="mode active" type="button">
+              <span class="mode-icon">⌖</span>
               <strong>현재 위치</strong>
-              <span>내 주변에서 시작</span>
+              <small>내 주변에서 시작</small>
             </button>
-            <button id="manualModeBtn" type="button" class="mode-tab">
+            <button id="manualModeBtn" class="mode" type="button">
+              <span class="mode-icon">⌕</span>
               <strong>직접 입력</strong>
-              <span>지역명으로 시작</span>
+              <small>지역명으로 시작</small>
             </button>
           </div>
 
-          <label class="field-label" for="placeInput">출발 지역</label>
-          <div class="search-row">
+          <label class="label" for="placeInput">출발 지역</label>
+          <div class="input-line">
             <input id="placeInput" type="text" placeholder="예: 익산역, 전주 남부시장, 서울 광장시장" autocomplete="off" />
             <button id="useSearchBtn" type="button">검색</button>
           </div>
-          <div class="quick-row">
+          <div class="quick-picks">
             <button type="button" data-place="익산역">익산역</button>
             <button type="button" data-place="전주 남부시장">전주 남부시장</button>
             <button type="button" data-place="서울 광장시장">광장시장</button>
+            <button type="button" data-place="부산 국제시장">국제시장</button>
           </div>
-          <p id="locationStatus" class="status-text">현재 위치를 쓰거나, 지역명을 입력하고 검색을 누르세요.</p>
+          <p id="locationStatus" class="status">현재 위치를 쓰거나 지역명을 직접 입력하세요.</p>
 
-          <div class="selector-block">
-            <p class="field-label">놀 시간</p>
-            <div class="segmented" id="timeOptions">
-              <button type="button" data-minutes="30">30분</button>
-              <button type="button" data-minutes="60" class="active">1시간</button>
-              <button type="button" data-minutes="120">2시간</button>
-              <button type="button" data-minutes="180">3시간</button>
+          <div class="form-row">
+            <div>
+              <p class="label">놀 시간</p>
+              <div id="timeOptions" class="time-grid">
+                <button type="button" data-minutes="30">30분</button>
+                <button type="button" data-minutes="60" class="active">1시간</button>
+                <button type="button" data-minutes="120">2시간</button>
+                <button type="button" data-minutes="180">3시간</button>
+              </div>
             </div>
-            <div class="custom-time">
-              <input id="customMinutes" type="number" min="20" max="480" placeholder="직접 입력(분)" />
-              <button id="applyCustomTime" type="button">적용</button>
-            </div>
-          </div>
-
-          <div class="selector-block">
-            <p class="field-label">코스 강도</p>
-            <div class="level-grid" id="levelOptions">
-              <button type="button" data-level="low">
-                <strong>하</strong>
-                <span>가볍게</span>
-              </button>
-              <button type="button" data-level="mid" class="active">
-                <strong>중</strong>
-                <span>적당히</span>
-              </button>
-              <button type="button" data-level="high">
-                <strong>상</strong>
-                <span>알차게</span>
-              </button>
+            <div>
+              <p class="label">직접 입력</p>
+              <div class="custom-time">
+                <input id="customMinutes" type="number" min="20" max="480" placeholder="분" />
+                <button id="applyCustomTime" type="button">적용</button>
+              </div>
             </div>
           </div>
 
-          <button id="generateBtn" class="primary-btn" type="button">
-            랜덤 루트 5개 뽑기
-          </button>
-          <p class="notice">루트 카드 5개 중 하나를 누르면 설명과 지도 경로선이 바뀝니다.</p>
-        </div>
+          <p class="label">코스 강도</p>
+          <div id="levelOptions" class="level-grid">
+            <button type="button" data-level="low">
+              <b>하</b><span>가볍게</span>
+            </button>
+            <button type="button" data-level="mid" class="active">
+              <b>중</b><span>적당히</span>
+            </button>
+            <button type="button" data-level="high">
+              <b>상</b><span>알차게</span>
+            </button>
+          </div>
+
+          <button id="generateBtn" class="generate-btn" type="button">랜덤 루트 5개 뽑기</button>
+          <p class="hint">다시 뽑기는 무제한입니다. 첫 번째 루트가 지도에 자동 표시됩니다.</p>
+        </section>
       </section>
     </header>
 
-    <main class="main-grid">
-      <section class="map-panel">
-        <div class="map-toolbar">
+    <main class="workspace">
+      <section class="map-card">
+        <div class="panel-head">
           <div>
-            <strong id="selectedRouteTitle">루트를 생성해주세요</strong>
-            <span id="selectedRouteSubtitle">루트 선택 시 경유지와 이동 경로선이 지도에 표시됩니다.</span>
+            <span class="mini-label">Selected route</span>
+            <h2 id="selectedRouteTitle">루트를 생성해주세요</h2>
+            <p id="selectedRouteSubtitle">루트 카드를 누르면 지도 경유지와 이동 선이 바뀝니다.</p>
           </div>
-          <a id="googleMapsLink" class="map-link disabled" target="_blank" rel="noopener">Google 지도 열기</a>
+          <a id="googleMapsLink" class="map-open disabled" target="_blank" rel="noopener">길찾기</a>
         </div>
         <div id="map"></div>
       </section>
 
-      <section class="result-panel">
-        <div class="result-header">
+      <aside class="routes-card">
+        <div class="panel-head compact">
           <div>
-            <p class="eyebrow dark">Random Route Cards</p>
-            <h2>AI 랜덤 루트 5개</h2>
+            <span class="mini-label">5 random cards</span>
+            <h2>랜덤 루트 5개</h2>
           </div>
-          <button id="resetBtn" type="button" class="secondary-btn">다시 뽑기</button>
+          <button id="resetBtn" type="button" class="reset-btn">다시 뽑기</button>
         </div>
-
-        <div id="summaryStrip" class="summary-strip">
-          <span>현재 조건</span>
-          <strong>1시간 · 중 코스</strong>
-        </div>
-
-        <div id="routesList" class="routes-list empty">
-          <div class="empty-state">
-            <div class="empty-icon">📍</div>
-            <h3>아직 루트가 없습니다.</h3>
-            <p>현재 위치를 허용하거나 지역명을 직접 입력한 뒤 랜덤 루트를 뽑아보세요.</p>
+        <div id="summaryStrip" class="summary">현재 조건 <b>1시간 · 중 코스</b></div>
+        <div id="routesList" class="routes-list">
+          <div class="empty">
+            <div>🧭</div>
+            <strong>아직 루트가 없습니다.</strong>
+            <p>현재 위치를 허용하거나 지역을 검색한 뒤 랜덤 루트를 뽑아보세요.</p>
           </div>
         </div>
-      </section>
+      </aside>
     </main>
 
-    <section id="how" class="how-section">
-      <div>
-        <p class="eyebrow dark">How it works</p>
-        <h2>현재 위치도 되고, 직접 입력도 됩니다.</h2>
+    <section id="guide" class="guide">
+      <div class="guide-title">
+        <span class="mini-label">How it works</span>
+        <h2>복잡한 취향 선택 없이, 실행 가능한 루트만 보여줍니다.</h2>
       </div>
-      <div class="how-cards">
-        <article>
-          <span>01</span>
-          <h3>출발지 선택</h3>
-          <p>현재 위치 버튼을 누르거나, 익산역·광장시장처럼 지역명을 직접 입력합니다.</p>
-        </article>
-        <article>
-          <span>02</span>
-          <h3>시간·강도 선택</h3>
-          <p>놀 시간과 코스 강도만 고르면 복잡한 테마 선택 없이 바로 추천합니다.</p>
-        </article>
-        <article>
-          <span>03</span>
-          <h3>지도 경로 표시</h3>
-          <p>5개 루트 중 하나를 누르면 지도 경유지와 이동 선이 즉시 바뀝니다.</p>
-        </article>
+      <div class="guide-grid">
+        <article><b>01</b><h3>출발지 선택</h3><p>현재 위치를 사용하거나 지역명을 직접 입력합니다.</p></article>
+        <article><b>02</b><h3>시간·강도 선택</h3><p>30분부터 3시간까지, 가볍게·적당히·알차게 중 선택합니다.</p></article>
+        <article><b>03</b><h3>루트 5개 비교</h3><p>예상 시간, 비용, 거리, 피로도, 재미도와 설명을 함께 봅니다.</p></article>
+        <article><b>04</b><h3>지도에서 확인</h3><p>카드를 누르면 경유지 마커와 이동 경로선이 바로 바뀝니다.</p></article>
       </div>
     </section>
 
-    <footer>
+    <footer class="footer">
       <strong>TimeRoute AI</strong>
-      <span>Google Maps 기반 위치정보 랜덤 루트 추천 웹서비스</span>
+      <span>Google Maps 기반 위치정보 랜덤 루트 추천 서비스</span>
     </footer>
   </div>
 
@@ -175,7 +162,8 @@
 
   <script>
     window.TIMEROUTE_CONFIG = {
-      GOOGLE_MAPS_API_KEY: "AIzaSyDYKuHA0iNB-3q0cC1GFBL_4GVirH44DKw"
+      GOOGLE_MAPS_API_KEY: "AIzaSyDYKuHA0iNB-3q0cC1GFBL_4GVirH44DKw",
+      ENGINE_DATA_URL: "./data/route_engine.json"
     };
   </script>
   <script src="./js/app.js"></script>

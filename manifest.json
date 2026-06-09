@@ -3,7 +3,7 @@
   "short_name": "타임루트",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f4f7fb",
-  "theme_color": "#101828",
+  "background_color": "#f5f7fb",
+  "theme_color": "#0B1220",
   "description": "현재 위치 또는 직접 입력한 지역 기반 랜덤 관광 루트 추천 웹서비스"
 }
